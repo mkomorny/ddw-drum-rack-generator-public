@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>App Changes Tracker</title>
+<style>
+  :root{
+    --bg:#12141c;
+    --bg-raised:#181b26;
+    --line:#2a2e3a;
+    --text:#e8e6e0;
+    --text-dim:#9195a3;
+    --accent:#5fa8a0;
+    --accent-dim:#3d6f6a;
+    --amber:#d9a05b;
+    --rose:#c97064;
+    --mono: ui-monospace, SFMono-Regular, "JetBrains Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--sans);
+    padding:32px 20px 80px;
+    min-height:100vh;
+  }
+  .wrap{max-width:760px; margin:0 auto;}
+
+  header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    gap:16px;
+    border-bottom:1px solid var(--line);
+    padding-bottom:20px;
+    margin-bottom:28px;
+    flex-wrap:wrap;
+  }
+  h1{
+    font-size:1.5rem;
+    margin:0 0 4px;
+    letter-spacing:-0.01em;
+  }
+  .sub{
+    color:var(--text-dim);
+    font-size:0.85rem;
+    font-family:var(--mono);
+  }
+  .sync-note{
+    font-size:0.72rem;
+    color:var(--text-dim);
+    font-family:var(--mono);
+    background:var(--bg-raised);
+    border:1px solid var(--line);
+    padding:6px 10px;
+    border-radius:4px;
+    max-width:220px;
+    line-height:1.4;
+  }
+
+  .controls{
+    display:flex;
+    gap:10px;
+    margin-bottom:24px;
+    flex-wrap:wrap;
+  }
+  input, textarea, select{
+    background:var(--bg-raised);
+    border:1px solid var(--line);
+    color:var(--text);
+    font-family:var(--sans);
+    font-size:0.9rem;
+    padding:9px 11px;
+    border-radius:5px;
+    outline:none;
+  }
+  input:focus, textarea:focus, select:focus{
+    border-color:var(--accent-dim);
+  }
+  .search{flex:1; min-width:160px;}
+  .filter-select{min-width:160px;}
+
+  button{
+    font-family:var(--sans);
+    font-size:0.85rem;
+    font-weight:600;
+    border-radius:5px;
+    border:1px solid transparent;
+    cursor:pointer;
+    padding:9px 16px;
+  }
+  .btn-primary{background:var(--accent); color:#0d1712;}
+  .btn-primary:hover{background:#71bdb4;}
+  .btn-ghost{background:transparent; border-color:var(--line); color:var(--text-dim);}
+  .btn-ghost:hover{color:var(--text); border-color:var(--text-dim);}
+  .btn-danger{background:transparent; color:var(--rose); border-color:var(--rose);}
+  .btn-danger:hover{background:rgba(201,112,100,0.12);}
+
+  form.entry-form{
+    background:var(--bg-raised);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:18px;
+    margin-bottom:32px;
+    display:none;
+  }
+  form.entry-form.open{display:block;}
+  .form-row{display:flex; gap:10px; margin-bottom:10px; flex-wrap:wrap;}
+  .form-row > *{flex:1; min-width:140px;}
+  .form-row label{
+    display:block;
+    font-family:var(--mono);
+    font-size:0.7rem;
+    color:var(--text-dim);
+    margin-bottom:4px;
+  }
+  textarea{width:100%; min-height:70px; resize:vertical; font-family:var(--sans);}
+  .form-actions{display:flex; gap:8px; justify-content:flex-end; margin-top:6px;}
+
+  .project-group{margin-bottom:30px;}
+  .project-title{
+    font-family:var(--mono);
+    font-size:0.95rem;
+    color:var(--amber);
+    margin-bottom:12px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .project-title::before{content:"#"; opacity:0.6;}
+
+  .log{
+    position:relative;
+    padding-left:22px;
+  }
+  .log::before{
+    content:"";
+    position:absolute;
+    left:5px;
+    top:6px;
+    bottom:6px;
+    width:1px;
+    background:var(--line);
+  }
+  .entry{
+    position:relative;
+    padding-bottom:20px;
+  }
+  .entry::before{
+    content:"";
+    position:absolute;
+    left:-22px;
+    top:5px;
+    width:9px;
+    height:9px;
+    border-radius:50%;
+    background:var(--accent);
+    border:2px solid var(--bg);
+    box-shadow:0 0 0 1px var(--accent-dim);
+  }
+  .entry-head{
+    display:flex;
+    align-items:baseline;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-bottom:4px;
+  }
+  .version{
+    font-family:var(--mono);
+    font-weight:600;
+    color:var(--text);
+    background:var(--bg-raised);
+    border:1px solid var(--line);
+    padding:1px 7px;
+    border-radius:4px;
+    font-size:0.85rem;
+  }
+  .date{
+    font-family:var(--mono);
+    font-size:0.75rem;
+    color:var(--text-dim);
+  }
+  .desc{
+    font-size:0.9rem;
+    line-height:1.5;
+    color:var(--text);
+    margin:4px 0 8px;
+    white-space:pre-wrap;
+  }
+  .entry-foot{
+    display:flex;
+    align-items:center;
+    gap:14px;
+  }
+  .repo-link{
+    font-family:var(--mono);
+    font-size:0.78rem;
+    color:var(--accent);
+    text-decoration:none;
+    border-bottom:1px dotted var(--accent-dim);
+  }
+  .repo-link:hover{color:#8fd6cd;}
+  .no-link{
+    font-family:var(--mono);
+    font-size:0.78rem;
+    color:var(--text-dim);
+    font-style:italic;
+  }
+  .entry-actions{
+    margin-left:auto;
+    display:flex;
+    gap:10px;
+  }
+  .icon-btn{
+    background:none;
+    border:none;
+    color:var(--text-dim);
+    font-size:0.75rem;
+    font-family:var(--mono);
+    padding:2px 4px;
+    cursor:pointer;
+  }
+  .icon-btn:hover{color:var(--text);}
+  .icon-btn.danger:hover{color:var(--rose);}
+
+  .empty{
+    text-align:center;
+    color:var(--text-dim);
+    font-family:var(--mono);
+    font-size:0.85rem;
+    padding:60px 20px;
+    border:1px dashed var(--line);
+    border-radius:8px;
+  }
+  .status{
+    font-family:var(--mono);
+    font-size:0.75rem;
+    color:var(--text-dim);
+    margin-bottom:14px;
+    min-height:1em;
+  }
+  .status.error{color:var(--rose);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <h1>App Changes Tracker</h1>
+      <div class="sub">version log · description · repo link</div>
+    </div>
+    <div class="sync-note">Shared log — visible and editable by anyone using this tool, including other sessions or bots you hand it to.</div>
+  </header>
+
+  <div class="status" id="status">Loading entries…</div>
+
+  <div class="controls">
+    <input class="search" id="searchInput" type="text" placeholder="Search project, version, or description…">
+    <select class="filter-select" id="projectFilter">
+      <option value="">All projects</option>
+    </select>
+    <button class="btn-primary" id="addBtn">+ Add version</button>
+  </div>
+
+  <form class="entry-form" id="entryForm">
+    <input type="hidden" id="editId">
+    <div class="form-row">
+      <div>
+        <label for="fProject">Project</label>
+        <input id="fProject" type="text" placeholder="e.g. MindTools Suite" required>
+      </div>
+      <div>
+        <label for="fVersion">Version</label>
+        <input id="fVersion" type="text" placeholder="e.g. v1.4.0" required>
+      </div>
+      <div>
+        <label for="fDate">Date</label>
+        <input id="fDate" type="date">
+      </div>
+    </div>
+    <div class="form-row">
+      <div style="flex:1 1 100%;">
+        <label for="fRepo">GitHub repo link (for this version)</label>
+        <input id="fRepo" type="url" placeholder="https://github.com/user/repo/releases/tag/v1.4.0">
+      </div>
+    </div>
+    <div class="form-row">
+      <div style="flex:1 1 100%;">
+        <label for="fDesc">Description — what changed</label>
+        <textarea id="fDesc" placeholder="What changed in this version, for someone reading the log later…"></textarea>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button type="button" class="btn-ghost" id="cancelBtn">Cancel</button>
+      <button type="submit" class="btn-primary" id="saveBtn">Save entry</button>
+    </div>
+  </form>
+
+  <div id="log"></div>
+
+</div>
+
+<script>
+(function(){
+  const statusEl = document.getElementById('status');
+  const logEl = document.getElementById('log');
+  const form = document.getElementById('entryForm');
+  const addBtn = document.getElementById('addBtn');
+  const cancelBtn = document.getElementById('cancelBtn');
+  const searchInput = document.getElementById('searchInput');
+  const projectFilter = document.getElementById('projectFilter');
+  const editIdField = document.getElementById('editId');
+  const STORAGE_KEY = 'app-changes-entries';
+
+  // Durable, append-only fallback log. window.storage only exists when this
+  // file is hosted inside the Claude artifact runtime -- opened as a plain
+  // local file (the common case for this project), get/set below silently
+  // no-op and this array is the only thing that actually persists. New
+  // entries get appended here at the end of each pass, never edited or
+  // removed, per the project's append-only App Tracker rule.
+  const SEED_ENTRIES = [
+    {
+      id: 'seed-v0.1.0',
+      project: 'DDW Drum Rack Generator',
+      version: 'v0.1.0',
+      date: '2026-08-23',
+      repoUrl: 'https://github.com/mkomorny/ddw-drum-rack-generator/releases/tag/v0.1.0',
+      description: 'First release. Clean-room rebuild of the Windward Drum Rack Generator concept as a standalone Max for Live MIDI-effect device (own implementation, not the original .amxd). Ships: folder drag-drop and click-to-browse ingestion (dropfile + opendialog folder, chunked scan so Live stays responsive), the segment-matching classifier with plural normalization and folder-beats-filename scoring (14 categories: 11 predefined + 3 blank user slots), WAV/AIFF/FLAC duration parsing from headers, the 4x4 pad grid with per-pad reroll/lock/category and a Reroll All dice, audition-on-reroll with an on/off toggle, and persistence (per-instance pad state via save()/embedmessage, global pack list and category definitions via a JSON file next to the .amxd). Ask-before-replace on a non-Drum-Rack instrument, never a silent delete. Note/Move export deferred to a later pass. No Push, no Move (not owned by the user). 22 classifier/duration/scan unit tests and 10 jsui smoke tests pass under plain Node; in-Live verification (probes P1-P7 in docs/dev-notes) still pending.'
+    },
+    {
+      id: 'seed-v0.1.1',
+      project: 'DDW Drum Rack Generator',
+      version: 'v0.1.1',
+      date: '2026-08-23',
+      repoUrl: 'https://github.com/mkomorny/ddw-drum-rack-generator/releases/tag/v0.1.1',
+      description: 'First real in-Live load, three genuine bugs found and fixed. (1) jsui’s script-declared outlets=2 wasn’t honored on a hand-packed .amxd, misrouting audition note data into opendialog -- fixed by collapsing to one tagged outlet sorted via a route object, mirroring the existing prepend/route input pattern. (2) The panel never rendered at all (blank white) -- root cause was a missing top-level mgraphics.init() call, undocumented as required until checked against Cycling 74’s own jsmgraphics guide; paint() was silently never being invoked. (3) A real wiring bug in our own code: drg-scan.js requires adapter.listDir(path), an object with a method, but drg-ui.js passed the adapter function bare, so every directory read threw and was silently caught as "unreadable," making every scan report 0 samples regardless of folder contents -- fixed and covered by a new regression test that fails on the old code and passes on the fix. Also added a saved_object_attributes.filename key to the jsui box, matching the pattern already proven in Live Actions Helper’s own .maxpat, since a hand-authored patcher file doesn’t reliably re-parse @filename from a box’s typed-in text on cold load. Verified live afterward: full 3-panel UI renders correctly, Drum Rack auto-creation works, click-to-browse opens a real OS folder dialog end-to-end, a real 67-file sample pack scanned correctly, and a non-drum pack correctly reported all pads empty rather than mis-assigning anything.'
+    },
+    {
+      id: 'seed-v0.2.0',
+      project: 'DDW Drum Rack Generator',
+      version: 'v0.2.0',
+      date: '2026-08-23',
+      repoUrl: 'https://github.com/mkomorny/ddw-drum-rack-generator/releases/tag/v0.2.0',
+      description: 'Replaced the blanket loop/fill/break/wet/midi/full/top path exclusion with independent, user-switchable content-type filters on a new “Types” tab. The old rule matched those tokens anywhere in a file’s FULL PATH, including folder names, so a real vendor stems pack (one-shots each named after their parent loop, e.g. “Seaside Drum Loop - 84 BPM Kick.wav” inside a “Loop Stems” folder) had 100% of its files silently excluded. Tags are now derived from the FILENAME only; each tag (loops, fills, breaks, wet, full, tops, one-shots/other) has its own on/off switch, each row shows a live count of how many scanned samples carry that tag, and a file with multiple tags is excluded if any one of them is switched off. “midi” remains hard-excluded with no switch. Also repaired breakage left by an abandoned prior attempt at a single loop-exclusion toggle: the audition checkbox’s click zone had drifted from where it is actually drawn (a real regression of the same class fixed in v0.1.1), fixed by routing paint and hit-testing through one shared set of Y-position constants, and by replacing two independently-maintained copies of the tab list with one shared array. 18 new/updated automated tests (9 classifier-level, 9 UI/hit-test) all pass alongside the existing 32.'
+    },
+    {
+      id: 'seed-v0.3.0',
+      project: 'DDW Drum Rack Generator',
+      version: 'v0.3.0',
+      date: '2026-08-24',
+      repoUrl: 'https://github.com/mkomorny/ddw-drum-rack-generator/releases/tag/v0.3.0',
+      description: 'Two changes, both requested after a live session surfaced real breakage. (1) Pad-assignment bug fix: assignPadSample() previously assumed a newly-inserted Drum Rack chain lands at index chainCount-1, an undocumented and apparently wrong assumption (temporary post() tracing while chasing the live bug pointed straight at it, same as the v0.1.1 bug hunt) -- fixed by diffing chain ids captured before/after insert_chain and locating the actual new chain by identity, with the old index-based guess kept only as a last-resort fallback. (2) The flat 7-toggle “Types” tab from v0.2.0 was replaced with three EXCLUSIVE Type modes -- One-Shots, Loops, Other -- selected from a dropdown-style control (mgraphics has no native <select>; clicking cycles the three). Only the active mode’s content is eligible for pad-filling until switched. Each mode has its own subcategory checklist with live counts and its own max-duration stepper, which layers as an additional ceiling on top of each pad category’s own max length rather than replacing it. One-Shots’ 7 subcategories are grouped straight from the existing 11 pad-role categories (no new classification code). Loops’ and Other’s subcategories are new content-type tags with best-guess filename aliases -- not yet verified against real sample packs, flagged for review. percloop/bassloop are new compound tags (a loop-family tag AND a perc/bass/808 role token in the same filename). The 16-pad grid itself, its categories, and its layout are unchanged -- this was scoped to the Types tab only; the visual mockup this was built from also showed different pad-role labels per note, treated as placeholder flavor text rather than a deliberate respec of the locked pad map. The old “filters” config key is gone, replaced by typeMode/modeFilters/modeMaxMs, with the same key-by-key default-merging on load so an old config’s unused key is simply ignored. 18 new/updated classify.js tests and 6 new/updated smoke-ui.js tests cover the new gating, compound tags, and config round-trip, alongside the existing suite (57 total). Not yet re-verified live -- no running Ableton instance was available during development; see IMPLEMENTATION-PLAN.md’s Verification section for the manual checklist this needs.'
+    },
+    {
+      id: 'seed-v0.3.1',
+      project: 'DDW Drum Rack Generator',
+      version: 'v0.3.1',
+      date: '2026-08-24',
+      repoUrl: 'https://github.com/mkomorny/ddw-drum-rack-generator/releases/tag/v0.3.1',
+      description: 'Follow-up after the user reloaded v0.3.0 live and reported two problems: the panel looked completely unchanged, and pads came up with a bare “Simpler” and no sample loaded. (1) v0.3.0 changed the Types tab’s data model and interaction but reused the exact same flat gray drawing style as before, so it genuinely looked all but identical -- a real gap, not a misread on the user’s part. Gave the mode “dropdown” and max-duration stepper real boxed/bordered chrome (mgraphics has no native <select>, so this is the closest faithful translation) colored to match the reference mockup’s palette, and turned pad-grid category labels into colored tag pills (CATEGORY_COLORS in drg-ui.js: kick amber, snare/clap/rim rose, hats/crash/ride cyan, perc/tom purple) instead of plain gray text; retuned panel/rail/mid background shades to the mockup’s actual hex values, which were visibly lighter than intended before. (2) Hardened the v0.3.0 chain-index fix against a getcount() race: rack.getcount("chains") read immediately after insert_chain() may still report the pre-insert count on some Live builds, which would make the id-diff scan find nothing new and silently fall back to reassigning an EXISTING chain’s note instead of the actually-new one -- exactly matching the blank-Simpler symptom reported live. assignPadSample() now re-reads the count once if it didn’t increase before scanning. This is a defensive fix, not a confirmed root cause -- no running Ableton instance was available to reproduce the race directly. Still not re-verified live; see IMPLEMENTATION-PLAN.md’s Verification section, and test on a FRESH track since old blank chains from before this fix won’t self-repair.'
+    },
+    {
+      id: 'seed-v0.4.0',
+      project: 'DDW Drum Rack Generator',
+      version: 'v0.4.0',
+      date: '2026-08-24',
+      repoUrl: 'https://github.com/mkomorny/ddw-drum-rack-generator/releases/tag/v0.4.0',
+      description: 'Root-cause pass after the user reported v0.3.1 changed nothing whatsoever after a reload -- correctly, because Live was never loading this repo. It loads from wherever the .amxd was dragged into the user’s User Library, and two deployed copies at A:\\User Library\\ had silently diverged from this repo and each other; one was still a pre-v0.3.0 debug build with DRG-DEBUG tracing still in it, meaning every prior pass had been "verified" against dead code. Added device/deploy.py, which repacks the .amxd and copies it plus every drg-*.js to BOTH deployed locations every run -- a pass is not complete until this has run. Separately found and fixed the actual blank-Simpler bug: LiveAPI.call() does not throw on failure in Max’s js engine, so the try/catch around simpler.call("replace_sample", ...) could never fire; assignPadSample() always returned ok:true and the device reported "Sample loaded." over an empty Simpler on every prior pass. It now reads the Simpler’s own sample child’s file_path back after the call, retrying alternate path-slash encodings, and only reports success once a non-empty path reads back -- superseding v0.3.1’s chain-index race hardening, since that failure mode can no longer report false success either. Also fixed: reclassifyAll() was passing the ABSOLUTE scanned path as the classification key, so folder-tier matching saw drive/vendor-folder segments before ever reaching the real category folder (drg-scan.js already computed the correct pack-relative path; it was being discarded) -- STATE.allFiles and rankCandidates() now carry both the relative path (classification) and absolute path (loading) separately. And: persisted packs never actually reloaded their files across sessions (STATE.packs was saved, STATE.allFiles never was), so a reloaded device showed its packs in the folder list with zero real candidates for any pad -- bang() now re-walks every persisted pack on startup via a scan queue. Taxonomy corrected against 40,000 real filenames from the user’s A:\\Samples_Packs library: added roll/noise/verb/delay/zap/ftom/rtom and a cymbal-to-crash last-resort fallback (all verified real hits), deliberately left out HANDOFF_SPEC.md’s synth/hit Tonal aliases (synth alone matches 2300+ mostly-melodic files and would flood Other mode), and fixed a real hi-hat misclassification the same audit surfaced: "Hihat Open.wav"/"Hihat Pedal.wav" were both classifying as closed because longest-alias-wins picked "hihat" over the actual qualifier -- hat_closed now has a genericAliases fallback list that only wins when no category’s specific alias matched. Visual palette rebuilt from the mockup’s actual hex values via a single COLORS table (previous passes approximated), and the Loops mode stepper is now bar-based ("4 Bars / 8000ms", delta +/-1 Bar) per HANDOFF_SPEC.md instead of the +/-250ms it shipped with. 65 total automated tests (24 new/updated this pass) pass under plain Node; still not re-verified live -- no running Ableton instance was available during development.'
+    }
+  ];
+
+  let entries = [];
+
+  function setStatus(msg, isError){
+    statusEl.textContent = msg || '';
+    statusEl.className = 'status' + (isError ? ' error' : '');
+  }
+
+  function uid(){
+    return 'e' + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+  }
+
+  function mergeSeed(stored){
+    const byKey = new Map();
+    SEED_ENTRIES.forEach(e => byKey.set(e.project + '::' + e.version, e));
+    (stored || []).forEach(e => byKey.set(e.project + '::' + e.version, e));
+    return Array.from(byKey.values());
+  }
+
+  async function loadEntries(){
+    setStatus('Loading entries…');
+    try{
+      const result = await window.storage.get(STORAGE_KEY, true);
+      const stored = result && result.value ? JSON.parse(result.value) : [];
+      entries = mergeSeed(stored);
+      setStatus('');
+    }catch(err){
+      entries = mergeSeed([]);
+      setStatus('');
+    }
+    render();
+  }
+
+  async function saveEntries(){
+    try{
+      const result = await window.storage.set(STORAGE_KEY, JSON.stringify(entries), true);
+      if(!result){
+        setStatus('Save failed — your change may not persist. Try again.', true);
+        return false;
+      }
+      return true;
+    }catch(err){
+      setStatus('Save failed — your change may not persist. Try again.', true);
+      return false;
+    }
+  }
+
+  function openForm(entry){
+    form.classList.add('open');
+    if(entry){
+      editIdField.value = entry.id;
+      document.getElementById('fProject').value = entry.project;
+      document.getElementById('fVersion').value = entry.version;
+      document.getElementById('fDate').value = entry.date || '';
+      document.getElementById('fRepo').value = entry.repoUrl || '';
+      document.getElementById('fDesc').value = entry.description || '';
+    } else {
+      editIdField.value = '';
+      form.reset();
+      document.getElementById('fDate').value = new Date().toISOString().slice(0,10);
+    }
+    document.getElementById('fProject').focus();
+  }
+
+  function closeForm(){
+    form.classList.remove('open');
+    form.reset();
+    editIdField.value = '';
+  }
+
+  addBtn.addEventListener('click', () => openForm(null));
+  cancelBtn.addEventListener('click', closeForm);
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = editIdField.value;
+    const data = {
+      project: document.getElementById('fProject').value.trim(),
+      version: document.getElementById('fVersion').value.trim(),
+      date: document.getElementById('fDate').value,
+      repoUrl: document.getElementById('fRepo').value.trim(),
+      description: document.getElementById('fDesc').value.trim()
+    };
+    if(!data.project || !data.version){
+      setStatus('Project and version are required.', true);
+      return;
+    }
+    const saveBtn = document.getElementById('saveBtn');
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving…';
+
+    if(id){
+      const idx = entries.findIndex(en => en.id === id);
+      if(idx > -1) entries[idx] = Object.assign({}, entries[idx], data);
+    } else {
+      entries.push(Object.assign({id: uid()}, data));
+    }
+
+    const ok = await saveEntries();
+    saveBtn.disabled = false;
+    saveBtn.textContent = 'Save entry';
+    if(ok){
+      setStatus('');
+      closeForm();
+      render();
+    }
+  });
+
+  async function deleteEntry(id){
+    const prev = entries.slice();
+    entries = entries.filter(en => en.id !== id);
+    render();
+    const ok = await saveEntries();
+    if(!ok){
+      entries = prev;
+      render();
+    }
+  }
+
+  function escapeHtml(str){
+    return (str || '').replace(/[&<>"']/g, c => ({
+      '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+    }[c]));
+  }
+
+  function fmtDate(d){
+    if(!d) return '';
+    const parts = d.split('-');
+    if(parts.length !== 3) return d;
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return months[parseInt(parts[1],10)-1] + ' ' + parseInt(parts[2],10) + ', ' + parts[0];
+  }
+
+  function render(){
+    const query = searchInput.value.trim().toLowerCase();
+    const projFilter = projectFilter.value;
+
+    const projects = [...new Set(entries.map(e => e.project))].sort((a,b) => a.localeCompare(b));
+    const currentFilterVal = projectFilter.value;
+    projectFilter.innerHTML = '<option value="">All projects</option>' +
+      projects.map(p => `<option value="${escapeHtml(p)}">${escapeHtml(p)}</option>`).join('');
+    projectFilter.value = projects.includes(currentFilterVal) ? currentFilterVal : '';
+
+    let filtered = entries.filter(en => {
+      if(projFilter && en.project !== projFilter) return false;
+      if(query){
+        const hay = (en.project + ' ' + en.version + ' ' + en.description).toLowerCase();
+        if(!hay.includes(query)) return false;
+      }
+      return true;
+    });
+
+    if(entries.length === 0){
+      logEl.innerHTML = '<div class="empty">No versions logged yet.<br>Click "+ Add version" to start the log.</div>';
+      return;
+    }
+    if(filtered.length === 0){
+      logEl.innerHTML = '<div class="empty">No entries match your search.</div>';
+      return;
+    }
+
+    const grouped = {};
+    filtered.forEach(en => {
+      if(!grouped[en.project]) grouped[en.project] = [];
+      grouped[en.project].push(en);
+    });
+
+    const groupNames = Object.keys(grouped).sort((a,b) => a.localeCompare(b));
+
+    logEl.innerHTML = groupNames.map(project => {
+      const list = grouped[project].slice().sort((a,b) => (b.date || '').localeCompare(a.date || ''));
+      const rows = list.map(en => `
+        <div class="entry" data-id="${en.id}">
+          <div class="entry-head">
+            <span class="version">${escapeHtml(en.version)}</span>
+            <span class="date">${escapeHtml(fmtDate(en.date))}</span>
+          </div>
+          ${en.description ? `<div class="desc">${escapeHtml(en.description)}</div>` : ''}
+          <div class="entry-foot">
+            ${en.repoUrl
+              ? `<a class="repo-link" href="${escapeHtml(en.repoUrl)}" target="_blank" rel="noopener">${escapeHtml(en.repoUrl)}</a>`
+              : `<span class="no-link">no repo link</span>`}
+            <span class="entry-actions">
+              <button class="icon-btn edit-btn">edit</button>
+              <button class="icon-btn danger del-btn">delete</button>
+            </span>
+          </div>
+        </div>
+      `).join('');
+      return `
+        <div class="project-group">
+          <div class="project-title">${escapeHtml(project)}</div>
+          <div class="log">${rows}</div>
+        </div>
+      `;
+    }).join('');
+
+    logEl.querySelectorAll('.edit-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = e.target.closest('.entry').dataset.id;
+        const en = entries.find(x => x.id === id);
+        if(en) openForm(en);
+      });
+    });
+    logEl.querySelectorAll('.del-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = e.target.closest('.entry').dataset.id;
+        if(confirm('Delete this entry?')) deleteEntry(id);
+      });
+    });
+  }
+
+  searchInput.addEventListener('input', render);
+  projectFilter.addEventListener('change', render);
+
+  loadEntries();
+})();
+</script>
+</body>
+</html>
